@@ -43,7 +43,7 @@ def get_args_parser():
 
     # Model parameters
     parser.add_argument('--arch', default='vit_small', type=str,
-        choices=['vit_tiny', 'vit_small', 'vit_base', 'xcit', 'deit_tiny', 'deit_small'] \
+        choices=['vit_tiny', 'vit_small', 'vit_base', 'xcit', 'deit_tiny', 'deit_small', 'swin_t'] \
                 + torchvision_archs + torch.hub.list("facebookresearch/xcit"),
         help="""Name of architecture to train. For quick experiments with ViTs,
         we recommend using vit_tiny or vit_small.""")
@@ -142,6 +142,8 @@ def train_dino(args):
         args.local_crops_scale,
         args.local_crops_number,
     )
+    args.data_path = "/workspace/mnt/storage/zhaozhijian/model_saving/ImageNet21K/ImageNet-pytorch/train"
+    args.arch = 'swin_t'
     dataset = datasets.ImageFolder(args.data_path, transform=transform)
     sampler = torch.utils.data.DistributedSampler(dataset, shuffle=True)
     data_loader = torch.utils.data.DataLoader(
@@ -164,7 +166,11 @@ def train_dino(args):
             drop_path_rate=args.drop_path_rate,  # stochastic depth
         )
         teacher = vits.__dict__[args.arch](patch_size=args.patch_size)
-        embed_dim = student.embed_dim
+        if 'swin' in args.arch:
+            embed_dim = student.num_features
+        else:
+            embed_dim = student.embed_dim
+        print(embed_dim)
     # if the network is a XCiT
     elif args.arch in torch.hub.list("facebookresearch/xcit"):
         student = torch.hub.load('facebookresearch/xcit', args.arch,
